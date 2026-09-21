@@ -1,0 +1,31 @@
+# Secrets - never commit these
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Runtime data
+data/
+*.db
+*.db-wal
+*.db-shm
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node / editors / OS
+node_modules/
+.idea/
+.vscode/
+.DS_Store
+desktop.ini
+Thumbs.db
+
+.env

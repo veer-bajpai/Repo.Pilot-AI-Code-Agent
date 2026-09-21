@@ -1,0 +1,22 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install -r requirements.txt
+      - name: No secrets in the tree
+        run: python scripts/check_no_secrets.py
+      - name: Unit and API tests
+        working-directory: backend
+        run: python -m pytest -q
+      - name: Offline evals
+        working-directory: backend
+        run: python -m evals.run

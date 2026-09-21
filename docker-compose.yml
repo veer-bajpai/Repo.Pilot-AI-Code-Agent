@@ -1,0 +1,25 @@
+# docker compose up --build       then open http://localhost:8000
+#
+# Put your Gemini key in your shell or a .env file next to this file (both git-ignored):
+#     GEMINI_API_KEY=your-key
+# With no key the app still starts and the built-in demos work; live AI is simply off.
+services:
+  repopilot:
+    build: .
+    ports:
+      # Publicly reachable on this machine's network. For the internet, put HTTPS in front (see README).
+      - "${PORT:-8000}:8000"
+    environment:
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.8-flash}
+      PUBLIC_MODE: ${PUBLIC_MODE:-true}
+      TRUST_PROXY: ${TRUST_PROXY:-false}
+      DAILY_COST_CAP_USD: ${DAILY_COST_CAP_USD:-5.00}
+      MAX_COST_USD: ${MAX_COST_USD:-0.25}
+      RUNS_PER_IP_PER_HOUR: ${RUNS_PER_IP_PER_HOUR:-6}
+    volumes:
+      - repopilot-data:/data
+    restart: unless-stopped
+
+volumes:
+  repopilot-data:

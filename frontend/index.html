@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RepoPilot</title>
+    <meta name="referrer" content="no-referrer" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2316203A'/%3E%3Cpath d='M9 23V9h8a5 5 0 0 1 0 10h-8' fill='none' stroke='%23E8A317' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to main content</a>
+
+    <header class="topbar">
+      <div class="brand">
+        <span class="mark" aria-hidden="true"></span><span>RepoPilot</span>
+      </div>
+      <div class="topbar-right">
+        <span id="aiPill" class="pill pill-muted" role="status"
+          >Checking AI…</span
+        >
+      </div>
+    </header>
+
+    <div id="banner" class="banner" role="alert" hidden></div>
+
+    <div class="graphic-strip" aria-hidden="true">
+      <span class="orb orb-one"></span>
+      <span class="orb orb-two"></span>
+      <span class="orb orb-three"></span>
+    </div>
+
+    <div class="layout">
+      <aside class="side" aria-label="Repositories">
+        <section class="panel">
+          <h2>Add a repository</h2>
+          <form id="repoForm" autocomplete="off">
+            <label for="repoUrl" class="sr">GitHub repository link</label>
+            <input
+              id="repoUrl"
+              name="repo"
+              type="url"
+              inputmode="url"
+              placeholder="https://github.com/owner/repo"
+              spellcheck="false"
+            />
+            <button class="btn btn-primary" type="submit" id="repoBtn">
+              Load repository
+            </button>
+          </form>
+          <p class="hint">
+            Public GitHub repositories only. Paste the link here; a pasted API
+            key or token is never accepted as a repository.
+          </p>
+          <p id="repoError" class="error" role="alert" hidden></p>
+        </section>
+
+        <section class="panel">
+          <h2>Try a built-in demo</h2>
+          <p class="hint">
+            Each demo has a real bug with failing tests and runs a scripted fix,
+            so it works even when the live AI is off.
+          </p>
+          <div id="demoList" class="demo-list"></div>
+        </section>
+
+        <section class="panel">
+          <h2>Your repositories</h2>
+          <ul id="sessionList" class="session-list"></ul>
+          <p id="sessionEmpty" class="hint">Nothing loaded yet.</p>
+        </section>
+      </aside>
+
+      <main id="main" class="main" tabindex="-1">
+        <div class="agent-character" aria-live="polite">
+          <div
+            class="agent-avatar mood-idle"
+            id="agentAvatar"
+            aria-hidden="true"
+          >
+            <div class="agent-head">
+              <span class="agent-eye left"></span>
+              <span class="agent-eye right"></span>
+              <span class="agent-mouth"></span>
+            </div>
+            <div class="agent-body"></div>
+            <span class="agent-glow"></span>
+          </div>
+          <div class="agent-bubble" id="agentBubble">Ready to inspect code</div>
+        </div>
+
+        <div id="welcome" class="welcome">
+          <h1>Let an agent fix a bug. Approve every move.</h1>
+          <p>
+            RepoPilot reads the code, plans, edits files and runs the tests, and
+            it stops for your approval before every edit and every test run.
+          </p>
+          <ol class="welcome-steps">
+            <li>
+              Pick a built-in demo, or paste a public GitHub repository link.
+            </li>
+            <li>Describe a bug or a small change.</li>
+            <li>
+              Review each approval gate: approve it, or reject it with a note.
+            </li>
+          </ol>
+        </div>
+
+        <div id="workspace" hidden>
+          <header class="ws-head">
+            <div>
+              <h1 id="wsName"></h1>
+              <p id="wsMeta" class="meta"></p>
+            </div>
+          </header>
+
+          <section class="panel composer" aria-labelledby="taskLabel">
+            <label id="taskLabel" for="task" class="field-label"
+              >What should the agent do?</label
+            >
+            <textarea
+              id="task"
+              rows="3"
+              maxlength="4000"
+              placeholder="Describe a bug to fix or a small change to make."
+            ></textarea>
+            <div class="composer-row">
+              <fieldset class="seg">
+                <legend>Approvals</legend>
+                <label
+                  ><input type="radio" name="mode" value="ask" checked /> Ask me
+                  every time</label
+                >
+                <label
+                  ><input type="radio" name="mode" value="auto" /> Auto-approve
+                  confident edits</label
+                >
+              </fieldset>
+              <fieldset class="seg" id="engineSeg" hidden>
+                <legend>Engine</legend>
+                <label
+                  ><input
+                    type="radio"
+                    name="engine"
+                    value="simulated"
+                    checked
+                  />
+                  Scripted demo (no key)</label
+                >
+                <label
+                  ><input type="radio" name="engine" value="live" /> Live AI
+                  (Gemini)</label
+                >
+              </fieldset>
+              <div class="composer-actions">
+                <button id="runBtn" class="btn btn-primary" type="button">
+                  Run agent
+                </button>
+                <button
+                  id="cancelBtn"
+                  class="btn btn-danger-quiet"
+                  type="button"
+                  hidden
+                >
+                  Cancel run
+                </button>
+              </div>
+            </div>
+            <p id="runError" class="error" role="alert" hidden></p>
+            <p id="aiHint" class="hint" hidden></p>
+            <p class="hint">
+              Live runs send your task and the code the agent reads to Google's
+              Gemini API. Don't load code you aren't allowed to share.
+            </p>
+          </section>
+
+          <section id="runPanel" hidden aria-label="Run">
+            <div class="meters" id="meters" aria-live="off"></div>
+            <div id="approvalNotice" class="notice" hidden>
+              The agent is waiting for your decision below.
+            </div>
+            <ol id="timeline" class="timeline"></ol>
+            <div id="result" class="panel result" hidden></div>
+          </section>
+
+          <section id="pastRuns" class="panel" hidden>
+            <h2>Earlier runs</h2>
+            <ul id="pastList" class="past-list"></ul>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <!-- GitHub token dialog (only when opening a pull request) -->
+    <dialog id="ghDialog" aria-labelledby="ghTitle">
+      <form method="dialog" id="ghForm" autocomplete="off">
+        <h2 id="ghTitle">Push and open a pull request</h2>
+        <p class="hint">
+          Needs a GitHub token with write access to this repository. It is used
+          for this one request and is not stored anywhere. If you do not have
+          write access, download the patch instead.
+        </p>
+        <label for="ghInput" class="field-label">GitHub token</label>
+        <input
+          id="ghInput"
+          type="password"
+          placeholder="ghp_... or github_pat_..."
+          spellcheck="false"
+          autocomplete="off"
+        />
+        <label for="prTitle" class="field-label">Pull request title</label>
+        <input id="prTitle" type="text" maxlength="200" />
+        <p id="ghError" class="error" role="alert" hidden></p>
+        <div class="dialog-actions">
+          <button id="ghCancel" class="btn btn-quiet" type="button">
+            Cancel
+          </button>
+          <button class="btn btn-primary" type="submit" id="ghGo">
+            Push and open PR
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    <script src="app.js"></script>
+  </body>
+</html>
