@@ -1,3 +1,11 @@
+FROM node:22-slim AS web-build
+
+WORKDIR /web
+COPY frontend-react/package*.json ./
+RUN npm ci
+COPY frontend-react/ ./
+RUN npm run build
+
 FROM python:3.12-slim
 
 # git is required to clone repositories and build diffs.
@@ -10,7 +18,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend ./backend
-COPY frontend ./frontend
+COPY --from=web-build /web/dist ./frontend
 COPY run.py .
 
 # Run as an unprivileged user; /data holds the database and cloned workspaces.
@@ -26,4 +34,4 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD python -c "import urllib.request,os; urllib.request.urlopen('http://127.0.0.1:%s/api/health' % os.environ.get('PORT','8000'), timeout=3)"
 
-CMD ["python", "run.py"]
+CMD ["sh", "-c", "alembic upgrade head && python run.py"]

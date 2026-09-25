@@ -82,6 +82,33 @@ class Settings:
     workspace_dir: Path
     database_path: Path
     frontend_dir: Path
+    database_url: str = ""
+    auth_required: bool = False
+    auth_auto_create: bool = False
+    jwt_secret: str = field(default="", repr=False)
+    access_token_minutes: int = 15
+    refresh_token_days: int = 30
+    email_from: str = ""
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = field(default="", repr=False)
+    smtp_tls: bool = True
+    app_base_url: str = "http://localhost:8000"
+    google_client_id: str = ""
+    google_client_secret: str = field(default="", repr=False)
+    github_client_id: str = ""
+    github_client_secret: str = field(default="", repr=False)
+    redis_url: str = "redis://localhost:6379/0"
+    stripe_secret_key: str = field(default="", repr=False)
+    stripe_webhook_secret: str = field(default="", repr=False)
+    stripe_price_id: str = ""
+    free_monthly_runs: int = 20
+    paid_monthly_runs: int = 500
+    free_concurrent_runs: int = 1
+    paid_concurrent_runs: int = 5
+    queue_enabled: bool = False
+    admin_emails: tuple[str, ...] = ()
 
 
 def load_settings() -> Settings:
@@ -89,7 +116,9 @@ def load_settings() -> Settings:
     data_dir = Path(os.environ.get("DATA_DIR", ROOT_DIR / "data")).resolve()
     workspace = Path(os.environ.get("WORKSPACE_DIR", data_dir / "workspaces")).resolve()
     database = Path(os.environ.get("DATABASE_PATH", data_dir / "repopilot.db")).resolve()
-    frontend = Path(os.environ.get("FRONTEND_DIR", ROOT_DIR / "frontend")).resolve()
+    built_frontend = ROOT_DIR / "frontend-react" / "dist"
+    frontend_default = built_frontend if built_frontend.is_dir() else ROOT_DIR / "frontend"
+    frontend = Path(os.environ.get("FRONTEND_DIR", frontend_default)).resolve()
     return Settings(
         gemini_api_key=os.environ.get("GEMINI_API_KEY", "").strip(),
         model=os.environ.get("GEMINI_MODEL", "gemini-3.8-flash").strip() or "gemini-3.8-flash",
@@ -122,4 +151,31 @@ def load_settings() -> Settings:
         workspace_dir=workspace,
         database_path=database,
         frontend_dir=frontend,
+        database_url=os.environ.get("DATABASE_URL", "").strip(),
+        auth_required=_bool("AUTH_REQUIRED", bool(os.environ.get("DATABASE_URL"))),
+        auth_auto_create=_bool("AUTH_AUTO_CREATE", False),
+        jwt_secret=os.environ.get("JWT_SECRET", "").strip(),
+        access_token_minutes=int(_num("ACCESS_TOKEN_MINUTES", 15)),
+        refresh_token_days=int(_num("REFRESH_TOKEN_DAYS", 30)),
+        email_from=os.environ.get("EMAIL_FROM", "").strip(),
+        smtp_host=os.environ.get("SMTP_HOST", "").strip(),
+        smtp_port=int(_num("SMTP_PORT", 587)),
+        smtp_user=os.environ.get("SMTP_USER", "").strip(),
+        smtp_password=os.environ.get("SMTP_PASSWORD", "").strip(),
+        smtp_tls=_bool("SMTP_TLS", True),
+        app_base_url=os.environ.get("APP_BASE_URL", "http://localhost:8000").strip(),
+        google_client_id=os.environ.get("GOOGLE_CLIENT_ID", "").strip(),
+        google_client_secret=os.environ.get("GOOGLE_CLIENT_SECRET", "").strip(),
+        github_client_id=os.environ.get("GITHUB_CLIENT_ID", "").strip(),
+        github_client_secret=os.environ.get("GITHUB_CLIENT_SECRET", "").strip(),
+        redis_url=os.environ.get("REDIS_URL", "redis://localhost:6379/0").strip(),
+        stripe_secret_key=os.environ.get("STRIPE_SECRET_KEY", "").strip(),
+        stripe_webhook_secret=os.environ.get("STRIPE_WEBHOOK_SECRET", "").strip(),
+        stripe_price_id=os.environ.get("STRIPE_PRICE_ID", "").strip(),
+        free_monthly_runs=int(_num("FREE_MONTHLY_RUNS", 20)),
+        paid_monthly_runs=int(_num("PAID_MONTHLY_RUNS", 500)),
+        free_concurrent_runs=int(_num("FREE_CONCURRENT_RUNS", 1)),
+        paid_concurrent_runs=int(_num("PAID_CONCURRENT_RUNS", 5)),
+        queue_enabled=_bool("QUEUE_ENABLED", False),
+        admin_emails=_list("ADMIN_EMAILS", ""),
     )

@@ -1,0 +1,91 @@
+services:
+  - type: web
+    name: repopilot-web
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    plan: starter
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: repopilot-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: repopilot-redis
+          property: connectionString
+      - key: AUTH_REQUIRED
+        value: "true"
+      - key: QUEUE_ENABLED
+        value: "true"
+      - key: PUBLIC_MODE
+        value: "true"
+      - key: APP_BASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_PRICE_ID
+        sync: false
+
+  - type: worker
+    name: repopilot-worker
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerCommand: celery -A backend.app.queue.celery_app worker --loglevel=INFO
+    plan: starter
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: repopilot-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: repopilot-redis
+          property: connectionString
+      - key: AUTH_REQUIRED
+        value: "true"
+      - key: QUEUE_ENABLED
+        value: "true"
+      - key: JWT_SECRET
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+
+  - type: redis
+    name: repopilot-redis
+    plan: starter
+    ipAllowList: []
+
+databases:
+  - name: repopilot-db
+    plan: starter
+    databaseName: repopilot
+    user: repopilot

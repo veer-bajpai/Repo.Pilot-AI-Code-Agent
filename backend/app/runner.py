@@ -48,7 +48,7 @@ def _redact_data(value, secret: str | None):
 
 
 class Runner:
-    def __init__(self, settings: Settings, db: Database, start_janitor: bool = False):
+    def __init__(self, settings: Settings, db: Database, start_janitor: bool = False, recover_on_start: bool = True):
         self.settings = settings
         self.db = db
         self._lock = threading.RLock()
@@ -56,7 +56,8 @@ class Runner:
         self._waiters: dict[str, _Waiter] = {}
         self._session_run: dict[str, str] = {}
         settings.workspace_dir.mkdir(parents=True, exist_ok=True)
-        db.mark_interrupted()
+        if recover_on_start:
+            db.mark_interrupted()
         self._validate_sessions()
         if start_janitor:
             threading.Thread(target=self._janitor_loop, daemon=True).start()
@@ -209,7 +210,7 @@ class Runner:
         return session
 
     # ------------------------------------------------------------------ runs
-    def start_run(self, sid: str, task: str, mode: str, llm, llm_kind: str) -> dict:
+    def start_run(self, sid: str, task: str, mode: str, llm, llm_kind: str, allow_tests_override: bool | None = None) -> dict:
         session = self._ready_session(sid)
         task = (task or "").strip()
         if len(task) < 5:
@@ -228,8 +229,12 @@ class Runner:
             run = self.db.create_run(sid, task, mode, llm_kind, getattr(llm, "model", None))
             self._session_run[sid] = run["id"]
             self._cancel[run["id"]] = threading.Event()
-        allow_tests = (not self.settings.public_mode) or session["kind"] == "demo"
-        threading.Thread(target=self._run_thread, args=(run["id"], session, task, mode, llm, allow_tests), daemon=True).start()
+        allow_tests = allow_tests_override if allow_tests_override is not None else ((not self.settings.public_mode) or session["kind"] == "demo")
+        if self.settings.queue_enabled and mode == "auto":
+            from .queue import enqueue_run
+            enqueue_run(run["id"], sid, task, mode, llm_kind)
+        else:
+            threading.Thread(target=self._run_thread, args=(run["id"], session, task, mode, llm, allow_tests), daemon=True).start()
         return run
 
     def _emit(self, run_id: str, kind: str, data: dict, secret: str | None) -> None:
@@ -287,6 +292,11 @@ class Runner:
         deadline = time.time() + self.settings.approval_timeout_s
         try:
             while not waiter.event.wait(0.4):
+                persisted = self.db.get_approval(aid)
+                if persisted and persisted["status"] in ("approved", "rejected"):
+                    waiter.approved = persisted["status"] == "approved"
+                    waiter.note = persisted.get("note") or ""
+                    break
                 if self._cancel.get(run_id) and self._cancel[run_id].is_set():
                     self.db.update_approval(aid, status="expired", decided_at=time.time())
                     return False, "run cancelled"

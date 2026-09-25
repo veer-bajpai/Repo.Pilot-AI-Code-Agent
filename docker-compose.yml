@@ -17,9 +17,46 @@ services:
       DAILY_COST_CAP_USD: ${DAILY_COST_CAP_USD:-5.00}
       MAX_COST_USD: ${MAX_COST_USD:-0.25}
       RUNS_PER_IP_PER_HOUR: ${RUNS_PER_IP_PER_HOUR:-6}
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://repopilot:repopilot@postgres:5432/repopilot}
+      AUTH_REQUIRED: ${AUTH_REQUIRED:-true}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      QUEUE_ENABLED: ${QUEUE_ENABLED:-false}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
     volumes:
       - repopilot-data:/data
     restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: repopilot
+      POSTGRES_USER: repopilot
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-repopilot}
+    volumes:
+      - repopilot-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U repopilot -d repopilot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - repopilot-redis:/data
 
 volumes:
   repopilot-data:
+  repopilot-postgres:
+  repopilot-redis:
