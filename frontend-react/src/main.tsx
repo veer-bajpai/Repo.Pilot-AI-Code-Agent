@@ -3,7 +3,6 @@ import {
   Check,
   ChevronRight,
   Code2,
-  GitBranch,
   LogOut,
   Menu,
   Moon,
@@ -107,10 +106,42 @@ function AuthScreen({ onAuth }: { onAuth: (user: User) => void }) {
         </p>
         <div className="oauth-row">
           <a className="oauth" href="/api/auth/oauth/google">
-            <span className="google-g">G</span> Continue with Google
+            <svg
+              className="provider-icon"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                fill="#4285F4"
+                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+              />
+              <path
+                fill="#34A853"
+                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.99.66-2.25 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.15v2.84A11 11 0 0 0 12 23z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.15a11 11 0 0 0 0 9.88l3.69-2.84z"
+              />
+              <path
+                fill="#EA4335"
+                d="M12 4.36c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 1.09 14.97 0 12 0a11 11 0 0 0-9.85 7.06L5.84 9.9C6.71 7.3 9.14 4.36 12 4.36z"
+              />
+            </svg>
+            Continue with Google
           </a>
           <a className="oauth" href="/api/auth/oauth/github">
-            <GitBranch size={18} /> Continue with GitHub
+            <svg
+              className="provider-icon github-icon"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                fill="currentColor"
+                d="M12 .297a12 12 0 0 0-3.79 23.4c.6.11.82-.26.82-.58v-2.23c-3.34.73-4.04-1.42-4.04-1.42-.55-1.39-1.33-1.76-1.33-1.76-1.09-.75.08-.74.08-.74 1.2.08 1.83 1.23 1.83 1.23 1.07 1.83 2.8 1.3 3.49.99.11-.78.42-1.3.76-1.6-2.67-.3-5.47-1.34-5.47-5.95 0-1.31.47-2.38 1.23-3.22-.12-.3-.53-1.52.12-3.17 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.3-1.55 3.3-1.23 3.3-1.23.65 1.65.24 2.87.12 3.17.77.84 1.23 1.91 1.23 3.22 0 4.62-2.8 5.64-5.48 5.94.43.37.81 1.1.81 2.22v3.32c0 .32.22.69.83.57A12 12 0 0 0 12 .297z"
+              />
+            </svg>
+            Continue with GitHub
           </a>
         </div>
         <div className="divider">

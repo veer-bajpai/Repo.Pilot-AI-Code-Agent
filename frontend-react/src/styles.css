@@ -142,10 +142,13 @@ p {
   border-color: var(--accent);
   transform: translateY(-1px);
 }
-.google-g {
-  color: #4285f4;
-  font-weight: 850;
-  font-size: 1.1rem;
+.provider-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+}
+.github-icon {
+  color: var(--ink);
 }
 .divider {
   display: flex;
