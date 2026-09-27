@@ -333,21 +333,60 @@ def create_app(settings: Settings | None = None, llm_factory: Callable = default
             token_url, user_url, client_id, secret = "https://oauth2.googleapis.com/token", "https://openidconnect.googleapis.com/v1/userinfo", settings.google_client_id, settings.google_client_secret
         else:
             token_url, user_url, client_id, secret = "https://github.com/login/oauth/access_token", "https://api.github.com/user", settings.github_client_id, settings.github_client_secret
-        token_response = httpx.post(token_url, data={"client_id": client_id, "client_secret": secret, "code": code, "redirect_uri": f"{settings.app_base_url}/api/auth/oauth/{provider}/callback"}, headers={"Accept": "application/json"}, timeout=10)
+
+        token_data = {
+            "client_id": client_id,
+            "client_secret": secret,
+            "code": code,
+            "redirect_uri": f"{settings.app_base_url}/api/auth/oauth/{provider}/callback",
+        }
+        if provider == "google":
+            token_data["grant_type"] = "authorization_code"
+
+        token_response = httpx.post(
+            token_url,
+            data=token_data,
+            headers={"Accept": "application/json"},
+            timeout=10,
+        )
         token_response.raise_for_status()
+
         access_token = token_response.json().get("access_token")
-        profile = httpx.get(user_url, headers={"Authorization": f"Bearer {access_token}", "Accept": "application/json"}, timeout=10).json()
+        profile = httpx.get(
+            user_url,
+            headers={
+                "Authorization": f"Bearer {access_token}",
+                "Accept": "application/json",
+            },
+            timeout=10,
+        ).json()
+
         email = profile.get("email")
         if not email and provider == "github":
-            emails = httpx.get("https://api.github.com/user/emails", headers={"Authorization": f"Bearer {access_token}"}, timeout=10).json()
-            email = next((item.get("email") for item in emails if item.get("primary")), None) or (emails[0].get("email") if emails else None)
+            emails = httpx.get(
+                "https://api.github.com/user/emails",
+                headers={"Authorization": f"Bearer {access_token}"},
+                timeout=10,
+            ).json()
+            email = next(
+                (item.get("email") for item in emails if item.get("primary")),
+                None,
+            ) or (emails[0].get("email") if emails else None)
+
         if not email:
             raise HTTPException(400, "The OAuth provider did not return an email address.")
-        user = auth_store.oauth_user(provider, str(profile.get("sub") or profile.get("id")), email, profile.get("name") or profile.get("login") or "")
+
+        user = auth_store.oauth_user(
+            provider,
+            str(profile.get("sub") or profile.get("id")),
+            email,
+            profile.get("name") or profile.get("login") or "",
+        )
         response = auth_response(user)
         response.delete_cookie("rp_oauth_state", path="/")
+        response.status_code = 303
+        response.headers["Location"] = "/"
         return response
-
     @app.get("/api/usage")
     def usage(request: Request):
         user = current_user(request)
